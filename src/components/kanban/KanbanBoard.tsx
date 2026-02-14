@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,82 +13,82 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import KanbanColumn from "./KanbanColumn";
 import KanbanCard from "./KanbanCard";
-import type { KanbanCardData } from "./KanbanCard";
 import CardDetailModal from "./CardDetailModal";
 import FilterBar from "./FilterBar";
-import MilestoneTracker from "./MilestoneTracker";
-import { Eye, EyeOff } from "lucide-react";
+import type { KanbanCardData, ColumnConfig, CardComment } from "./types";
 
-const internalColumns = [
-  { id: "backlog", title: "Backlog", color: "bg-gray-400" },
-  { id: "in_progress", title: "En Progreso", color: "bg-blue-500" },
-  { id: "review", title: "Review", color: "bg-yellow-500" },
-  { id: "qa", title: "QA", color: "bg-purple-500" },
-  { id: "done", title: "Done", color: "bg-green-500" },
-];
+// ─── Props ───────────────────────────────────────────────────
 
-const clientColumns = [
-  { id: "backlog", title: "Pendiente", color: "bg-gray-400" },
-  { id: "in_progress", title: "En Desarrollo", color: "bg-blue-500" },
-  { id: "review", title: "En Revisión", color: "bg-yellow-500" },
-  { id: "done", title: "Completado", color: "bg-green-500" },
-];
-
-const initialCards: Record<string, KanbanCardData[]> = {
-  backlog: [
-    { id: "t1", title: "Configurar CI/CD pipeline", type: "task", priority: "medium", assignee: { initials: "CR", name: "Carlos Ruiz" }, dueDate: "Feb 20", commentsCount: 1 },
-    { id: "t2", title: "Diseñar sistema de notificaciones", type: "feature", priority: "low", assignee: { initials: "AT", name: "Ana Torres" }, dueDate: "Feb 25", commentsCount: 0 },
-    { id: "t3", title: "Documentar API endpoints", type: "task", priority: "low", assignee: { initials: "PG", name: "Pedro Gómez" }, commentsCount: 0 },
-  ],
-  in_progress: [
-    { id: "t4", title: "Implementar autenticación JWT", type: "feature", priority: "high", assignee: { initials: "JD", name: "Juan Díaz" }, dueDate: "Feb 15", commentsCount: 3 },
-    { id: "t5", title: "Error en validación de formulario", type: "bug", priority: "critical", assignee: { initials: "ML", name: "María López" }, dueDate: "Feb 14", commentsCount: 2 },
-    { id: "t6", title: "Diseño responsive del dashboard", type: "task", priority: "medium", assignee: { initials: "JD", name: "Juan Díaz" }, dueDate: "Feb 18", commentsCount: 1 },
-  ],
-  review: [
-    { id: "t7", title: "Integración pasarela de pagos", type: "feature", priority: "high", assignee: { initials: "CR", name: "Carlos Ruiz" }, dueDate: "Feb 16", commentsCount: 5 },
-    { id: "t8", title: "Optimizar consultas de base de datos", type: "task", priority: "medium", assignee: { initials: "PG", name: "Pedro Gómez" }, commentsCount: 2 },
-  ],
-  qa: [
-    { id: "t9", title: "Tests E2E para checkout", type: "task", priority: "high", assignee: { initials: "AT", name: "Ana Torres" }, dueDate: "Feb 17", commentsCount: 1 },
-  ],
-  done: [
-    { id: "t10", title: "Setup del proyecto base", type: "task", priority: "medium", assignee: { initials: "JD", name: "Juan Díaz" }, commentsCount: 0 },
-    { id: "t11", title: "Diseño del header y navegación", type: "task", priority: "low", assignee: { initials: "ML", name: "María López" }, commentsCount: 2 },
-    { id: "t12", title: "Modelo de datos del usuario", type: "feature", priority: "medium", assignee: { initials: "CR", name: "Carlos Ruiz" }, commentsCount: 1 },
-  ],
-};
-
-const milestones = [
-  { id: 1, title: "MVP - Funcionalidad Core", dueDate: "Feb 28", progress: 70, status: "in_progress" as const },
-  { id: 2, title: "Beta - Integración Pagos", dueDate: "Mar 15", progress: 40, status: "in_progress" as const },
-  { id: 3, title: "Launch - Producción", dueDate: "Abr 01", progress: 10, status: "pending" as const },
-];
-
-interface KanbanBoardProps {
-  projectId?: string;
+export interface KanbanBoardProps {
+  /** Column definitions shown in the board */
+  columns: ColumnConfig[];
+  /** Initial cards grouped by column id */
+  initialCards: Record<string, KanbanCardData[]>;
+  /** Make the board read-only (no drag & drop) */
+  readonly?: boolean;
+  /** Show the filter bar */
+  showFilters?: boolean;
+  /** Extra class name for the outer wrapper */
+  className?: string;
+  /** When true, cards display limited client-view actions in the modal */
+  isClientView?: boolean;
+  /** Current user info (for comments) */
+  currentUser?: { name: string; initials: string };
+  /** Called when a card moves to a different column */
+  onCardMove?: (cardId: string, fromColumn: string, toColumn: string) => void;
+  /** Called when a card is reordered within its column */
+  onCardReorder?: (columnId: string, cardIds: string[]) => void;
+  /** Called when client approves a deliverable */
+  onApprove?: (card: KanbanCardData) => void;
+  /** Called when client reports a bug */
+  onReportBug?: (card: KanbanCardData) => void;
+  /** Called when a comment is added */
+  onAddComment?: (card: KanbanCardData, comment: CardComment) => void;
 }
 
-export default function KanbanBoard({ projectId }: KanbanBoardProps) {
-  const [columns, setColumns] = useState(initialCards);
+// ─── Component ───────────────────────────────────────────────
+
+export default function KanbanBoard({
+  columns,
+  initialCards,
+  readonly = false,
+  showFilters = true,
+  className,
+  isClientView = false,
+  currentUser,
+  onCardMove,
+  onCardReorder,
+  onApprove,
+  onReportBug,
+  onAddComment,
+}: KanbanBoardProps) {
+  const [boardCards, setBoardCards] = useState(initialCards);
   const [activeCard, setActiveCard] = useState<KanbanCardData | null>(null);
   const [selectedCard, setSelectedCard] = useState<KanbanCardData | null>(null);
-  const [isClientView, setIsClientView] = useState(false);
+
+  // Filters
   const [filterType, setFilterType] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
 
-  const currentColumns = isClientView ? clientColumns : internalColumns;
+  // ── Helpers ──────────────────────────────────────────────
+
+  const findColumnForCard = useCallback(
+    (cardId: string): string | null => {
+      for (const [colId, cards] of Object.entries(boardCards)) {
+        if (cards.some((c) => c.id === cardId)) return colId;
+      }
+      return null;
+    },
+    [boardCards]
+  );
 
   const getFilteredCards = (columnId: string): KanbanCardData[] => {
-    // In client view, merge qa into review
-    let cards = columns[columnId] || [];
-    if (isClientView && columnId === "review") {
-      cards = [...cards, ...(columns["qa"] || [])];
-    }
-
+    const cards = boardCards[columnId] || [];
     return cards.filter((card) => {
       if (filterType !== "all" && card.type !== filterType) return false;
       if (filterPriority !== "all" && card.priority !== filterPriority) return false;
@@ -97,18 +97,16 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     });
   };
 
-  const findColumnForCard = (cardId: string): string | null => {
-    for (const [colId, cards] of Object.entries(columns)) {
-      if (cards.some((c) => c.id === cardId)) return colId;
-    }
-    return null;
-  };
+  // ── DnD handlers ─────────────────────────────────────────
 
   const handleDragStart = (event: DragStartEvent) => {
     const cardId = event.active.id as string;
-    for (const cards of Object.values(columns)) {
+    for (const cards of Object.values(boardCards)) {
       const card = cards.find((c) => c.id === cardId);
-      if (card) { setActiveCard(card); break; }
+      if (card) {
+        setActiveCard(card);
+        break;
+      }
     }
   };
 
@@ -122,16 +120,15 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     const activeCol = findColumnForCard(activeId);
     let overCol = findColumnForCard(overId);
 
-    // If over is a column id (droppable), not a card
-    if (!overCol && currentColumns.some((c) => c.id === overId)) {
+    if (!overCol && columns.some((c) => c.id === overId)) {
       overCol = overId;
     }
 
     if (!activeCol || !overCol || activeCol === overCol) return;
 
-    setColumns((prev) => {
+    setBoardCards((prev) => {
       const activeCards = [...prev[activeCol]];
-      const overCards = [...prev[overCol]];
+      const overCards = [...(prev[overCol] || [])];
       const activeIndex = activeCards.findIndex((c) => c.id === activeId);
       const [movedCard] = activeCards.splice(activeIndex, 1);
 
@@ -148,6 +145,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const draggedCard = activeCard;
     setActiveCard(null);
     if (!over) return;
 
@@ -157,83 +155,83 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     const activeCol = findColumnForCard(activeId);
     if (!activeCol) return;
 
-    // Same column reorder
     if (activeId !== overId) {
-      const col = columns[activeCol];
+      const col = boardCards[activeCol];
       const oldIndex = col.findIndex((c) => c.id === activeId);
       const newIndex = col.findIndex((c) => c.id === overId);
       if (oldIndex !== -1 && newIndex !== -1) {
-        setColumns((prev) => ({
-          ...prev,
-          [activeCol]: arrayMove(prev[activeCol], oldIndex, newIndex),
-        }));
+        setBoardCards((prev) => {
+          const newOrder = arrayMove(prev[activeCol], oldIndex, newIndex);
+          onCardReorder?.(activeCol, newOrder.map((c) => c.id));
+          return { ...prev, [activeCol]: newOrder };
+        });
+      }
+    }
+
+    // Notify parent of cross-column moves
+    if (draggedCard) {
+      const originalCol = Object.entries(initialCards).find(([, cards]) =>
+        cards.some((c) => c.id === activeId)
+      )?.[0];
+      if (originalCol && originalCol !== activeCol) {
+        onCardMove?.(activeId, originalCol, activeCol);
       }
     }
   };
 
+  // ── Render ───────────────────────────────────────────────
+
   return (
-    <div className="flex flex-col gap-4 p-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">E-Commerce Platform</h1>
-          <p className="text-sm text-muted-foreground">Plataforma de comercio electrónico</p>
+    <div className={className}>
+      {showFilters && (
+        <div className="mb-4">
+          <FilterBar
+            activeType={filterType}
+            activePriority={filterPriority}
+            onFilterType={setFilterType}
+            onFilterPriority={setFilterPriority}
+            onSearch={setSearchQuery}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsClientView(!isClientView)}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent"
-          >
-            {isClientView ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            {isClientView ? "Vista Interna" : "Vista Cliente"}
-          </button>
-        </div>
-      </div>
+      )}
 
-      {/* Milestone tracker */}
-      <MilestoneTracker milestones={milestones} />
-
-      {/* Filters */}
-      <FilterBar
-        activeType={filterType}
-        activePriority={filterPriority}
-        onFilterType={setFilterType}
-        onFilterPriority={setFilterPriority}
-        onSearch={setSearchQuery}
-      />
-
-      {/* Board */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
+        onDragStart={readonly ? undefined : handleDragStart}
+        onDragOver={readonly ? undefined : handleDragOver}
+        onDragEnd={readonly ? undefined : handleDragEnd}
       >
         <div className="flex gap-4 overflow-x-auto pb-4">
-          {currentColumns.map((col) => (
+          {columns.map((col) => (
             <KanbanColumn
               key={col.id}
               id={col.id}
               title={col.title}
               color={col.color}
               cards={getFilteredCards(col.id)}
+              readonly={readonly}
               onCardClick={(card) => setSelectedCard(card)}
             />
           ))}
         </div>
 
-        <DragOverlay>
-          {activeCard && <KanbanCard card={activeCard} />}
-        </DragOverlay>
+        {!readonly && (
+          <DragOverlay>
+            {activeCard && <KanbanCard card={activeCard} readonly />}
+          </DragOverlay>
+        )}
       </DndContext>
 
-      {/* Card detail modal */}
       {selectedCard && (
         <CardDetailModal
           card={selectedCard}
           onClose={() => setSelectedCard(null)}
           isClientView={isClientView}
+          currentUser={currentUser}
+          onApprove={onApprove}
+          onReportBug={onReportBug}
+          onAddComment={onAddComment}
         />
       )}
     </div>

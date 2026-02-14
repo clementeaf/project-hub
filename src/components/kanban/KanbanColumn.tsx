@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import KanbanCard from "./KanbanCard";
-import type { KanbanCardData } from "./KanbanCard";
+import type { KanbanCardData } from "./types";
 import { cn } from "@/lib/utils";
 
 interface KanbanColumnProps {
@@ -9,10 +9,18 @@ interface KanbanColumnProps {
   title: string;
   cards: KanbanCardData[];
   color?: string;
+  readonly?: boolean;
   onCardClick?: (card: KanbanCardData) => void;
 }
 
-export default function KanbanColumn({ id, title, cards, color = "bg-muted", onCardClick }: KanbanColumnProps) {
+export default function KanbanColumn({
+  id,
+  title,
+  cards,
+  color = "bg-muted",
+  readonly = false,
+  onCardClick,
+}: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -34,7 +42,12 @@ export default function KanbanColumn({ id, title, cards, color = "bg-muted", onC
           )}
         >
           {cards.map((card) => (
-            <KanbanCard key={card.id} card={card} onClick={() => onCardClick?.(card)} />
+            <KanbanCard
+              key={card.id}
+              card={card}
+              readonly={readonly}
+              onClick={() => onCardClick?.(card)}
+            />
           ))}
         </div>
       </SortableContext>

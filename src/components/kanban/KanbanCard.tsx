@@ -1,43 +1,19 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Calendar, MessageSquare } from "lucide-react";
+import type { KanbanCardData } from "./types";
+import { TYPE_STYLES, TYPE_LABELS, PRIORITY_STYLES, PRIORITY_LABELS } from "./types";
 
-export interface KanbanCardData {
-  id: string;
-  title: string;
-  type: "task" | "bug" | "feature";
-  priority: "low" | "medium" | "high" | "critical";
-  assignee: { initials: string; name: string };
-  dueDate?: string;
-  commentsCount: number;
-  description?: string;
-}
-
-const typeStyles = {
-  task: "bg-blue-100 text-blue-800",
-  bug: "bg-red-100 text-red-800",
-  feature: "bg-purple-100 text-purple-800",
-};
-
-const typeLabels = { task: "Task", bug: "Bug", feature: "Feature" };
-
-const priorityStyles = {
-  low: "bg-gray-100 text-gray-600",
-  medium: "bg-yellow-100 text-yellow-700",
-  high: "bg-orange-100 text-orange-700",
-  critical: "bg-red-100 text-red-700",
-};
-
-const priorityLabels = { low: "Baja", medium: "Media", high: "Alta", critical: "Crítica" };
-
-interface Props {
+interface KanbanCardProps {
   card: KanbanCardData;
   onClick?: () => void;
+  readonly?: boolean;
 }
 
-export default function KanbanCard({ card, onClick }: Props) {
+export default function KanbanCard({ card, onClick, readonly = false }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
+    disabled: readonly,
   });
 
   const style = {
@@ -55,27 +31,32 @@ export default function KanbanCard({ card, onClick }: Props) {
     >
       <div className="mb-2 flex items-start justify-between">
         <div className="flex flex-wrap gap-1.5">
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${typeStyles[card.type]}`}>
-            {typeLabels[card.type]}
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${TYPE_STYLES[card.type]}`}>
+            {TYPE_LABELS[card.type]}
           </span>
-          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${priorityStyles[card.priority]}`}>
-            {priorityLabels[card.priority]}
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${PRIORITY_STYLES[card.priority]}`}>
+            {PRIORITY_LABELS[card.priority]}
           </span>
         </div>
-        <button
-          className="cursor-grab touch-none text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {!readonly && (
+          <button
+            className="cursor-grab touch-none text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <h4 className="text-sm font-medium leading-snug">{card.title}</h4>
 
       <div className="mt-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium" title={card.assignee.name}>
+          <div
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium"
+            title={card.assignee.name}
+          >
             {card.assignee.initials}
           </div>
           {card.dueDate && (
