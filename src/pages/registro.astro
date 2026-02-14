@@ -1,0 +1,17 @@
+---
+import '../styles/globals.css'
+import RegisterForm from '../components/auth/RegisterForm.tsx'
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Crear Cuenta | ProjectHub</title>
+  </head>
+  <body class="flex min-h-screen items-center justify-center bg-background p-4 antialiased">
+    <RegisterForm client:load />
+  </body>
+</html>

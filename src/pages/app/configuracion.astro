@@ -1,0 +1,104 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro'
+import Sidebar from '../../components/app/Sidebar.tsx'
+import Header from '../../components/app/Header.tsx'
+---
+
+<AppLayout title="Configuración">
+  <div class="flex h-screen">
+    <Sidebar client:load currentPath="/app/configuracion" />
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <Header client:load breadcrumb={[{ label: "Dashboard", href: "/app" }, { label: "Configuración" }]} />
+      <main class="flex-1 overflow-y-auto p-6">
+        <div class="mx-auto max-w-2xl space-y-8">
+          <div>
+            <h1 class="text-2xl font-bold">Configuración</h1>
+            <p class="text-sm text-muted-foreground">Administra tu perfil y preferencias</p>
+          </div>
+
+          <!-- Profile section -->
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h2 class="mb-4 text-lg font-semibold">Perfil</h2>
+            <div class="flex items-center gap-4 mb-6">
+              <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-lg font-medium text-primary-foreground">
+                JD
+              </div>
+              <div>
+                <div class="font-semibold">Juan Díaz</div>
+                <div class="text-sm text-muted-foreground">juan@projecthub.dev</div>
+                <div class="mt-1">
+                  <span class="inline-flex rounded-full bg-chart-1 px-2 py-0.5 text-xs font-medium text-white">
+                    Administrador
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div>
+                <label class="mb-1.5 block text-sm font-medium">Nombre</label>
+                <input type="text" value="Juan Díaz" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+              </div>
+              <div>
+                <label class="mb-1.5 block text-sm font-medium">Email</label>
+                <input type="email" value="juan@projecthub.dev" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+              </div>
+              <button class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90">
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h2 class="mb-4 text-lg font-semibold">Notificaciones</h2>
+            <div class="space-y-4">
+              {[
+                { label: "Nuevas tareas asignadas", desc: "Recibir notificación cuando te asignen una tarea", checked: true },
+                { label: "Comentarios", desc: "Notificar cuando alguien comente en tus tareas", checked: true },
+                { label: "Cambios de estado", desc: "Cuando una tarea cambie de estado", checked: false },
+                { label: "Resumen semanal", desc: "Recibir un resumen semanal por email", checked: true },
+              ].map((item, i) => (
+                <div class="flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium">{item.label}</div>
+                    <div class="text-xs text-muted-foreground">{item.desc}</div>
+                  </div>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" checked={item.checked} class="peer sr-only" />
+                    <div class="h-5 w-9 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <!-- Appearance -->
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h2 class="mb-4 text-lg font-semibold">Apariencia</h2>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-medium">Modo Oscuro</div>
+                <div class="text-xs text-muted-foreground">Cambiar entre tema claro y oscuro</div>
+              </div>
+              <button
+                id="dark-mode-toggle"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                </svg>
+                Alternar
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</AppLayout>
+
+<script>
+  document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
+    document.documentElement.classList.toggle('dark')
+  })
+</script>

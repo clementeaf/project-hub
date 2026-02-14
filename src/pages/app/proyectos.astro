@@ -1,0 +1,18 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro'
+import Sidebar from '../../components/app/Sidebar.tsx'
+import Header from '../../components/app/Header.tsx'
+import ProjectList from '../../components/app/ProjectList.tsx'
+---
+
+<AppLayout title="Proyectos">
+  <div class="flex h-screen">
+    <Sidebar client:load currentPath="/app/proyectos" />
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <Header client:load breadcrumb={[{ label: "Dashboard", href: "/app" }, { label: "Proyectos" }]} />
+      <main class="flex-1 overflow-y-auto">
+        <ProjectList client:load />
+      </main>
+    </div>
+  </div>
+</AppLayout>

@@ -1,0 +1,33 @@
+---
+import LandingLayout from '../layouts/LandingLayout.astro'
+import Hero from '../components/landing/Hero.astro'
+import Servicios from '../components/landing/Servicios.astro'
+import Proceso from '../components/landing/Proceso.astro'
+import Testimonios from '../components/landing/Testimonios.astro'
+import ContactForm from '../components/landing/ContactForm.tsx'
+---
+
+<LandingLayout title="Consultoría y Desarrollo">
+  <Hero />
+  <Servicios />
+  <Proceso />
+  <Testimonios />
+
+  <section id="contacto" class="py-16 sm:py-24 lg:py-32">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-2xl">
+        <div class="text-center">
+          <h2 class="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            Hablemos de tu proyecto
+          </h2>
+          <p class="mt-3 text-base text-muted-foreground sm:mt-4 sm:text-lg">
+            Cuéntanos tu idea y te ayudamos a hacerla realidad
+          </p>
+        </div>
+        <div class="mt-8 sm:mt-10">
+          <ContactForm client:load />
+        </div>
+      </div>
+    </div>
+  </section>
+</LandingLayout>
